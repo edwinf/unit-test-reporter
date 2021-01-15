@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="967ece1c-f413-4622-bfc1-ac6bca3a5af5" name="PC@PC 2021-01-15 01:22:12" runUser="PC" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2021-01-15T01:22:12.3403888-05:00" queuing="2021-01-15T01:22:12.3403894-05:00" start="2021-01-15T01:22:11.5713384-05:00" finish="2021-01-15T01:22:12.3508283-05:00" />
+  <TestSettings name="default" id="49ddbd8a-c55e-4238-95ee-7ceafdb5a10f">
+    <Deployment runDeploymentRoot="PC_2021-01-15_01_22_12" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="6598c156-097f-44bd-9cd2-c3acfd1d006b" testId="6b5864c8-9c18-103e-d6a4-02129f8ffba6" testName="XUnitTestProject1.UnitTest1.IsFalse" computerName="PC" duration="00:00:00.0018699" startTime="2021-01-15T01:22:12.2384752-05:00" endTime="2021-01-15T01:22:12.2385376-05:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6598c156-097f-44bd-9cd2-c3acfd1d006b" />
+    <UnitTestResult executionId="bd59dff4-4753-411a-a5e5-2113bfcbc37b" testId="6e2ca3f7-2367-9c13-e86a-3e63c824f169" testName="XUnitTestProject1.UnitTest1.IsTrue" computerName="PC" duration="00:00:00.0013731" startTime="2021-01-15T01:22:12.2567020-05:00" endTime="2021-01-15T01:22:12.2567036-05:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="bd59dff4-4753-411a-a5e5-2113bfcbc37b">
+      <Output>
+        <ErrorInfo>
+          <Message>Assert.True() Failure&#xD;
+Expected: True&#xD;
+Actual:   False</Message>
+          <StackTrace>   at XUnitTestProject1.UnitTest1.IsTrue() in c:\code\XUnitTestProject1\UnitTest1.cs:line 12</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="XUnitTestProject1.UnitTest1.IsTrue" storage="c:\code\xunittestproject1\bin\debug\netcoreapp3.1\xunittestproject1.dll" id="6e2ca3f7-2367-9c13-e86a-3e63c824f169">
+      <Execution id="bd59dff4-4753-411a-a5e5-2113bfcbc37b" />
+      <TestMethod codeBase="c:\code\XUnitTestProject1\bin\Debug\netcoreapp3.1\XUnitTestProject1.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="XUnitTestProject1.UnitTest1" name="IsTrue" />
+    </UnitTest>
+    <UnitTest name="XUnitTestProject1.UnitTest1.IsFalse" storage="c:\code\xunittestproject1\bin\debug\netcoreapp3.1\xunittestproject1.dll" id="6b5864c8-9c18-103e-d6a4-02129f8ffba6">
+      <Execution id="6598c156-097f-44bd-9cd2-c3acfd1d006b" />
+      <TestMethod codeBase="c:\code\XUnitTestProject1\bin\Debug\netcoreapp3.1\XUnitTestProject1.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="XUnitTestProject1.UnitTest1" name="IsFalse" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="6b5864c8-9c18-103e-d6a4-02129f8ffba6" executionId="6598c156-097f-44bd-9cd2-c3acfd1d006b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6e2ca3f7-2367-9c13-e86a-3e63c824f169" executionId="bd59dff4-4753-411a-a5e5-2113bfcbc37b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="2" executed="2" passed="1" failed="1" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.4.0 (64-bit .NET Core 3.1.8)&#xD;
+[xUnit.net 00:00:00.23]   Discovering: XUnitTestProject1&#xD;
+[xUnit.net 00:00:00.26]   Discovered:  XUnitTestProject1&#xD;
+[xUnit.net 00:00:00.26]   Starting:    XUnitTestProject1&#xD;
+[xUnit.net 00:00:00.33]       Assert.True() Failure&#xD;
+[xUnit.net 00:00:00.33]       Expected: True&#xD;
+[xUnit.net 00:00:00.33]       Actual:   False&#xD;
+[xUnit.net 00:00:00.33]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.33]         c:\code\XUnitTestProject1\UnitTest1.cs(12,0): at XUnitTestProject1.UnitTest1.IsTrue()&#xD;
+[xUnit.net 00:00:00.33]   Finished:    XUnitTestProject1&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="PC" outcome="Error" timestamp="2021-01-15T01:22:12.2551782-05:00">
+        <Text>[xUnit.net 00:00:00.33]     XUnitTestProject1.UnitTest1.IsTrue [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

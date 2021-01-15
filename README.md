@@ -1,13 +1,16 @@
-# nunit reporter
-Create an annotation of the build information and also list first n failed nunit tests
+# unit test reporter
+Create an annotation of the build information and also list first n failed tests.  Currently supports nunit and trx formats.
 
 Example
 ```yaml
-  - uses: MirrorNG/nunit-reporter@v1.0.9
+  - uses: edwinf/unit-nunit-reporter@v1.0.0
       if: always()
-      with:
-        path: Tests/*.xml
-        access-token: ${{ secrets.GITHUB_TOKEN }}
+      with: 
+        path: 'test-resuls/*.xml'
+        reportType: 'trx'
+        access-token: ${{secrets.GITHUB_TOKEN}}
 ```
 
-See https://github.com/MirrorNG/nunit-reporter/pull/2/files for an example.
+
+
+This project has been [mirror forked](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/duplicating-a-repository#mirroring-a-repository) from [MirrorNG/nunit-reporter](https://github.com/MirrorNG/nunit-reporter).

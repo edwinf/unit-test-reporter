@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MirrorNG/nunit-reporter.git"
+    "url": "git+https://github.com/edwinf/unit-test-reporter.git"
   },
   "keywords": [
     "actions",
