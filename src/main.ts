@@ -1,10 +1,7 @@
 import {setFailed, getInput} from '@actions/core'
-import {GitHub, context} from '@actions/github'
-import {readResults, Annotation} from './nunit'
-
-function generateSummary(annotation: Annotation): string {
-  return `* ${annotation.title}\n   ${annotation.message}`
-}
+import nunit from './parsers/nunit'
+import {uploadResults} from './github'
+import {UnitTestResultParser} from './parsers/parser'
 
 async function run(): Promise<void> {
   try {
@@ -12,51 +9,25 @@ async function run(): Promise<void> {
     const numFailures = parseInt(getInput('numFailures'))
     const accessToken = getInput('access-token')
     const title = getInput('reportTitle')
+    const reportType = getInput('reportType')
 
-    const results = await readResults(path)
-
-    const octokit = new GitHub(accessToken)
-
-    const summary =
-      results.failed > 0
-        ? `${results.failed} tests failed`
-        : `${results.passed} tests passed`
-
-    let details =
-      results.failed === 0
-        ? `** ${results.passed} tests passed**`
-        : `
-**${results.passed} tests passed**
-**${results.failed} tests failed**
-`
-
-    for (const ann of results.annotations) {
-      const annStr = generateSummary(ann)
-      const newDetails = `${details}\n${annStr}`
-      if (newDetails.length > 65000) {
-        details = `${details}\n\n ... and more.`
+    let parser: UnitTestResultParser | null = null
+    switch (reportType) {
+      case 'nunit':
+        parser = new nunit()
         break
-      } else {
-        details = newDetails
-      }
+
+      default:
+        setFailed(
+          `Unknown report type ${reportType}.  Types 'nunit' are supported`
+        )
+        break
     }
 
-    const pr = context.payload.pull_request
-    await octokit.checks.create({
-      head_sha: (pr && pr['head'] && pr['head'].sha) || context.sha,
-      name: 'Tests Report',
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      status: 'completed',
-      conclusion:
-        results.failed > 0 || results.passed === 0 ? 'failure' : 'success',
-      output: {
-        title,
-        summary,
-        annotations: results.annotations.slice(0, numFailures),
-        text: details
-      }
-    })
+    if (parser != null) {
+      const results = await parser.readResults(path)
+      uploadResults(accessToken, title, numFailures, results)
+    }
   } catch (error) {
     setFailed(error.message)
   }

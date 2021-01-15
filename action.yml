@@ -6,8 +6,12 @@ inputs:
     description: 'github token'
     required: true
   path:
-    description: 'glob to junit xml files'
+    description: 'glob to test xml files'
     required: true
+  reportType: 
+    description: 'the type of xml files to parse for unit test results'
+    required: false
+    default: 'nunit'
   numFailures:
     description: 'max number of failed tests to include'
     required: false
