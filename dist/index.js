@@ -43,6 +43,66 @@ module.exports =
 /************************************************************************/
 /******/ ({
 
+/***/ 0:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const xml2js_1 = __webpack_require__(992);
+const annotation_1 = __webpack_require__(107);
+const test_result_1 = __webpack_require__(4);
+const parser_1 = __webpack_require__(759);
+class TrxParser extends parser_1.UnitTestResultParser {
+    async parseResults(testData) {
+        const parsedXml = await xml2js_1.parseStringPromise(testData, {
+            trim: true,
+            mergeAttrs: true,
+            explicitArray: false
+        });
+        const testRun = parsedXml['TestRun'];
+        const results = this.getResults(testRun);
+        const failedResults = results.filter(r => r.outcome !== 'Passed');
+        const annotations = failedResults.map(s => this.resultAnnotations(s));
+        const duration = new Date(testRun.Times.finish).valueOf() -
+            new Date(testRun.Times.start).valueOf();
+        return new test_result_1.TestResult(new test_result_1.TestResultCounts(parseInt(testRun.ResultSummary.Counters.total), parseInt(testRun.ResultSummary.Counters.passed), parseInt(testRun.ResultSummary.Counters.warning), parseInt(testRun.ResultSummary.Counters.notExecuted), parseInt(testRun.ResultSummary.Counters.failed), parseInt(testRun.ResultSummary.Counters.timeout)), duration, annotations);
+    }
+    resultAnnotations(testResult) {
+        const errorInfo = testResult.Output.ErrorInfo;
+        let [filename, lineno] = ['unknown', 0];
+        const stackTrace = errorInfo.StackTrace || '';
+        if (stackTrace.length > 0) {
+            ;
+            [filename, lineno] = this.getLocation(errorInfo.StackTrace);
+        }
+        const sanitizedFilename = this.sanitizePath(filename);
+        const message = errorInfo.Message;
+        return new annotation_1.Annotation(sanitizedFilename, lineno, lineno, 0, 0, testResult.outcome === 'Failed'
+            ? 'failure'
+            : testResult.outcome === 'Warning'
+                ? 'warning'
+                : 'notice', `Failed test ${testResult.testName}`, message, stackTrace.substring(0, 65536));
+    }
+    getResults(results) {
+        let unitTestResults = [];
+        if (results.Results && results.Results.UnitTestResult) {
+            const utrs = results.Results.UnitTestResult;
+            if (Array.isArray(utrs)) {
+                unitTestResults = unitTestResults.concat(utrs);
+            }
+            else {
+                unitTestResults.push(utrs);
+            }
+        }
+        return unitTestResults;
+    }
+}
+exports.default = TrxParser;
+
+
+/***/ }),
+
 /***/ 2:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -4721,6 +4781,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const core_1 = __webpack_require__(470);
 const nunit_1 = __importDefault(__webpack_require__(666));
 const github_1 = __webpack_require__(824);
+const trx_1 = __importDefault(__webpack_require__(0));
 async function run() {
     try {
         const path = core_1.getInput('path');
@@ -4732,6 +4793,9 @@ async function run() {
         switch (reportType) {
             case 'nunit':
                 parser = new nunit_1.default();
+                break;
+            case 'trx':
+                parser = new trx_1.default();
                 break;
             default:
                 core_1.setFailed(`Unknown report type ${reportType}.  Types 'nunit' are supported`);

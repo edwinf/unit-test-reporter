@@ -18,8 +18,8 @@ async function run(): Promise<void> {
         parser = new nunitParser()
         break
       case 'trx':
-        parser = new trxParser();
-
+        parser = new trxParser()
+        break
       default:
         setFailed(
           `Unknown report type ${reportType}.  Types 'nunit' are supported`
