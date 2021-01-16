@@ -1,7 +1,8 @@
 import {setFailed, getInput} from '@actions/core'
-import nunit from './parsers/nunit'
+import nunitParser from './parsers/nunit'
 import {uploadResults} from './github'
 import {UnitTestResultParser} from './parsers/parser'
+import trxParser from './parsers/trx'
 
 async function run(): Promise<void> {
   try {
@@ -14,8 +15,10 @@ async function run(): Promise<void> {
     let parser: UnitTestResultParser | null = null
     switch (reportType) {
       case 'nunit':
-        parser = new nunit()
+        parser = new nunitParser()
         break
+      case 'trx':
+        parser = new trxParser();
 
       default:
         setFailed(
