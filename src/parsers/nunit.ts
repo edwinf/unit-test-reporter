@@ -1,64 +1,16 @@
 import {parseStringPromise} from 'xml2js'
-import {create} from '@actions/glob'
-import {promises as fs} from 'fs'
 import {Annotation} from '../types/annotation'
-import {TestResult} from '../types/test-result'
+import {TestResult, TestResultCounts} from '../types/test-result'
 import {UnitTestResultParser} from './parser'
-import {sanitizePath} from './utilities'
 
-export default class NunitParser implements UnitTestResultParser {
-  public async readResults(path: string): Promise<TestResult> {
-    let results = new TestResult(0, 0, [])
-
-    for await (const result of this.resultGenerator(path))
-      results = this.combine(results, result)
-
-    return results
-  }
-
-  private getLocation(stacktrace: string): [string, number] {
-    // assertions stack traces as reported by unity
-    const matches = stacktrace.matchAll(/in (.*):(\d+)/g)
-
-    for (const match of matches) {
-      const lineNo = parseInt(match[2])
-      if (lineNo !== 0) return [match[1], lineNo]
-    }
-
-    // assertions stack traces as reported by dotnet
-    const matches2 = stacktrace.matchAll(/in (.*):line (\d+)/g)
-
-    for (const match of matches2) {
-      const lineNo = parseInt(match[2])
-      if (lineNo !== 0) return [match[1], lineNo]
-    }
-
-    // exceptions stack traces as reported by unity
-    const matches3 = stacktrace.matchAll(/\(at (.*):(\d+)\)/g)
-
-    for (const match of matches3) {
-      const lineNo = parseInt(match[2])
-      if (lineNo !== 0) return [match[1], lineNo]
-    }
-
-    // exceptions stack traces as reported by dotnet
-    const matches4 = stacktrace.matchAll(/\(at (.*):line (\d+)\)/g)
-
-    for (const match of matches4) {
-      const lineNo = parseInt(match[2])
-      if (lineNo !== 0) return [match[1], lineNo]
-    }
-
-    return ['unknown', 0]
-  }
-
+export default class NunitParser extends UnitTestResultParser {
   private testCaseAnnotation(testcase: any): Annotation {
     const [filename, lineno] =
       'stack-trace' in testcase.failure
         ? this.getLocation(testcase.failure['stack-trace'])
         : ['unknown', 0]
 
-    const sanitizedFilename = sanitizePath(filename)
+    const sanitizedFilename = this.sanitizePath(filename)
     const message = testcase.failure.message
     const classname = testcase.classname
     const methodname = testcase.methodname
@@ -97,21 +49,24 @@ export default class NunitParser implements UnitTestResultParser {
     if ('test-case' in testsuite) {
       const childcases = testsuite['test-case']
 
-      if (Array.isArray(childcases)) testCases = testCases.concat(childcases)
-      else testCases.push(childcases)
+      if (Array.isArray(childcases)) {
+        testCases = testCases.concat(childcases)
+      } else {
+        testCases.push(childcases)
+      }
     }
 
     return testCases
   }
 
-  private async parseNunit(nunitReport: string): Promise<TestResult> {
-    const nunitResults: any = await parseStringPromise(nunitReport, {
+  protected async parseResults(testData: string): Promise<TestResult> {
+    const parsedXml: any = await parseStringPromise(testData, {
       trim: true,
       mergeAttrs: true,
       explicitArray: false
     })
 
-    const testRun = nunitResults['test-run']
+    const testRun = parsedXml['test-run']
 
     const testCases = this.getTestCases(testRun)
     const failedCases = testCases.filter(tc => tc.result === 'Failed')
@@ -119,26 +74,16 @@ export default class NunitParser implements UnitTestResultParser {
     const annotations = failedCases.map(s => this.testCaseAnnotation(s))
 
     return new TestResult(
-      parseInt(testRun.passed),
-      parseInt(testRun.failed),
+      new TestResultCounts(
+        parseInt(testRun.total),
+        parseInt(testRun.passed),
+        0,
+        parseInt(testRun.skipped),
+        parseInt(testRun.failed),
+        0
+      ),
+      testRun.duration,
       annotations
     )
-  }
-
-  private combine(result1: TestResult, result2: TestResult): TestResult {
-    const passed = result1.passed + result2.passed
-    const failed = result1.failed + result2.failed
-    const annotations = result1.annotations.concat(result2.annotations)
-
-    return new TestResult(passed, failed, annotations)
-  }
-
-  private async *resultGenerator(path: string): AsyncGenerator<TestResult> {
-    const globber = await create(path, {followSymbolicLinks: false})
-
-    for await (const file of globber.globGenerator()) {
-      const data = await fs.readFile(file, 'utf8')
-      yield this.parseNunit(data)
-    }
   }
 }

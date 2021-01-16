@@ -3,6 +3,7 @@ import {promises as fs} from 'fs'
 import {EOL} from 'os'
 import nunitParser from '../../src/parsers/nunit'
 var path = require('path')
+
 test('parse TestCase', async () => {
   var testPath = path.join('__tests__', 'nunit', 'testcase.xml')
   const data = await fs.readFile(testPath, 'utf8')
@@ -42,10 +43,10 @@ test('parse Results', async () => {
   const data = await fs.readFile(testPath, 'utf8')
 
   const nunit = new nunitParser()
-  const results = await nunit['parseNunit'](data)
+  const results = await nunit['parseResults'](data)
 
-  expect(results.passed).toBe(332)
-  expect(results.failed).toBe(1)
+  expect(results.resultCounts.passed).toBe(332)
+  expect(results.resultCounts.failed).toBe(1)
 
   const annotation = results.annotations[0]
   var expectedPath = path.join(

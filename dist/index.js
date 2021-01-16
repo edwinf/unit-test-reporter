@@ -104,13 +104,30 @@ module.exports = osName;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 class TestResult {
-    constructor(passed, failed, annotations) {
-        this.passed = passed;
-        this.failed = failed;
+    constructor(resultCounts, totalduration, annotations) {
+        this.resultCounts = resultCounts;
+        this.totalduration = totalduration;
         this.annotations = annotations;
+    }
+    merge(testResult) {
+        return new TestResult(this.resultCounts.merge(testResult.resultCounts), this.totalduration + testResult.totalduration, this.annotations.concat(testResult.annotations));
     }
 }
 exports.TestResult = TestResult;
+class TestResultCounts {
+    constructor(total, passed, warning, skipped, failed, timeout) {
+        this.total = total;
+        this.passed = passed;
+        this.warning = warning;
+        this.skipped = skipped;
+        this.failed = failed;
+        this.timeout = timeout;
+    }
+    merge(testResultCounts) {
+        return new TestResultCounts(this.total + testResultCounts.total, this.passed + testResultCounts.passed, this.warning + testResultCounts.warning, this.skipped + testResultCounts.skipped, this.failed + testResultCounts.failed, this.timeout + testResultCounts.timeout);
+    }
+}
+exports.TestResultCounts = TestResultCounts;
 
 
 /***/ }),
@@ -4793,26 +4810,6 @@ class RequestError extends Error {
 
 exports.RequestError = RequestError;
 //# sourceMappingURL=index.js.map
-
-
-/***/ }),
-
-/***/ 206:
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const path_1 = __webpack_require__(622);
-function sanitizePath(filename) {
-    if (filename.startsWith('/github/workspace')) {
-        return path_1.relative('/github/workspace', filename);
-    }
-    else {
-        return path_1.relative(process.cwd(), filename).replace(/\\/g, '/');
-    }
-}
-exports.sanitizePath = sanitizePath;
 
 
 /***/ }),
@@ -13997,54 +13994,15 @@ if (process.platform === 'linux') {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const xml2js_1 = __webpack_require__(992);
-const glob_1 = __webpack_require__(281);
-const fs_1 = __webpack_require__(747);
 const annotation_1 = __webpack_require__(107);
 const test_result_1 = __webpack_require__(4);
-const utilities_1 = __webpack_require__(206);
-class NunitParser {
-    async readResults(path) {
-        let results = new test_result_1.TestResult(0, 0, []);
-        for await (const result of this.resultGenerator(path))
-            results = this.combine(results, result);
-        return results;
-    }
-    getLocation(stacktrace) {
-        // assertions stack traces as reported by unity
-        const matches = stacktrace.matchAll(/in (.*):(\d+)/g);
-        for (const match of matches) {
-            const lineNo = parseInt(match[2]);
-            if (lineNo !== 0)
-                return [match[1], lineNo];
-        }
-        // assertions stack traces as reported by dotnet
-        const matches2 = stacktrace.matchAll(/in (.*):line (\d+)/g);
-        for (const match of matches2) {
-            const lineNo = parseInt(match[2]);
-            if (lineNo !== 0)
-                return [match[1], lineNo];
-        }
-        // exceptions stack traces as reported by unity
-        const matches3 = stacktrace.matchAll(/\(at (.*):(\d+)\)/g);
-        for (const match of matches3) {
-            const lineNo = parseInt(match[2]);
-            if (lineNo !== 0)
-                return [match[1], lineNo];
-        }
-        // exceptions stack traces as reported by dotnet
-        const matches4 = stacktrace.matchAll(/\(at (.*):line (\d+)\)/g);
-        for (const match of matches4) {
-            const lineNo = parseInt(match[2]);
-            if (lineNo !== 0)
-                return [match[1], lineNo];
-        }
-        return ['unknown', 0];
-    }
+const parser_1 = __webpack_require__(759);
+class NunitParser extends parser_1.UnitTestResultParser {
     testCaseAnnotation(testcase) {
         const [filename, lineno] = 'stack-trace' in testcase.failure
             ? this.getLocation(testcase.failure['stack-trace'])
             : ['unknown', 0];
-        const sanitizedFilename = utilities_1.sanitizePath(filename);
+        const sanitizedFilename = this.sanitizePath(filename);
         const message = testcase.failure.message;
         const classname = testcase.classname;
         const methodname = testcase.methodname;
@@ -14064,37 +14022,26 @@ class NunitParser {
         }
         if ('test-case' in testsuite) {
             const childcases = testsuite['test-case'];
-            if (Array.isArray(childcases))
+            if (Array.isArray(childcases)) {
                 testCases = testCases.concat(childcases);
-            else
+            }
+            else {
                 testCases.push(childcases);
+            }
         }
         return testCases;
     }
-    async parseNunit(nunitReport) {
-        const nunitResults = await xml2js_1.parseStringPromise(nunitReport, {
+    async parseResults(testData) {
+        const parsedXml = await xml2js_1.parseStringPromise(testData, {
             trim: true,
             mergeAttrs: true,
             explicitArray: false
         });
-        const testRun = nunitResults['test-run'];
+        const testRun = parsedXml['test-run'];
         const testCases = this.getTestCases(testRun);
         const failedCases = testCases.filter(tc => tc.result === 'Failed');
         const annotations = failedCases.map(s => this.testCaseAnnotation(s));
-        return new test_result_1.TestResult(parseInt(testRun.passed), parseInt(testRun.failed), annotations);
-    }
-    combine(result1, result2) {
-        const passed = result1.passed + result2.passed;
-        const failed = result1.failed + result2.failed;
-        const annotations = result1.annotations.concat(result2.annotations);
-        return new test_result_1.TestResult(passed, failed, annotations);
-    }
-    async *resultGenerator(path) {
-        const globber = await glob_1.create(path, { followSymbolicLinks: false });
-        for await (const file of globber.globGenerator()) {
-            const data = await fs_1.promises.readFile(file, 'utf8');
-            yield this.parseNunit(data);
-        }
+        return new test_result_1.TestResult(new test_result_1.TestResultCounts(parseInt(testRun.total), parseInt(testRun.passed), 0, parseInt(testRun.skipped), parseInt(testRun.failed), 0), testRun.duration, annotations);
     }
 }
 exports.default = NunitParser;
@@ -28870,6 +28817,80 @@ const request = withDefaults(endpoint.endpoint, {
 
 exports.request = request;
 //# sourceMappingURL=index.js.map
+
+
+/***/ }),
+
+/***/ 759:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const glob_1 = __webpack_require__(281);
+const path_1 = __webpack_require__(622);
+const test_result_1 = __webpack_require__(4);
+const fs_1 = __webpack_require__(747);
+class UnitTestResultParser {
+    async readResults(path) {
+        let results = new test_result_1.TestResult(new test_result_1.TestResultCounts(0, 0, 0, 0, 0, 0), 0, []);
+        for await (const result of this.resultGenerator(path)) {
+            results = results.merge(result);
+        }
+        return results;
+    }
+    sanitizePath(filename) {
+        if (filename.startsWith('/github/workspace')) {
+            return path_1.relative('/github/workspace', filename);
+        }
+        else {
+            return path_1.relative(process.cwd(), filename).replace(/\\/g, '/');
+        }
+    }
+    getLocation(stacktrace) {
+        // assertions stack traces as reported by unity
+        const matches = stacktrace.matchAll(/in (.*):(\d+)/g);
+        for (const match of matches) {
+            const lineNo = parseInt(match[2]);
+            if (lineNo !== 0) {
+                return [match[1], lineNo];
+            }
+        }
+        // assertions stack traces as reported by dotnet
+        const matches2 = stacktrace.matchAll(/in (.*):line (\d+)/g);
+        for (const match of matches2) {
+            const lineNo = parseInt(match[2]);
+            if (lineNo !== 0) {
+                return [match[1], lineNo];
+            }
+        }
+        // exceptions stack traces as reported by unity
+        const matches3 = stacktrace.matchAll(/\(at (.*):(\d+)\)/g);
+        for (const match of matches3) {
+            const lineNo = parseInt(match[2]);
+            if (lineNo !== 0) {
+                return [match[1], lineNo];
+            }
+        }
+        // exceptions stack traces as reported by dotnet
+        const matches4 = stacktrace.matchAll(/\(at (.*):line (\d+)\)/g);
+        for (const match of matches4) {
+            const lineNo = parseInt(match[2]);
+            if (lineNo !== 0) {
+                return [match[1], lineNo];
+            }
+        }
+        return ['unknown', 0];
+    }
+    async *resultGenerator(path) {
+        const globber = await glob_1.create(path, { followSymbolicLinks: false });
+        for await (const file of globber.globGenerator()) {
+            const data = await fs_1.promises.readFile(file, 'utf8');
+            yield this.parseResults(data);
+        }
+    }
+}
+exports.UnitTestResultParser = UnitTestResultParser;
 
 
 /***/ }),
